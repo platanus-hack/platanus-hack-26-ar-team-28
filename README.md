@@ -62,10 +62,6 @@ scanner que vaya al ritmo del código generado.
 | **II — AppSec continuo para código generado por IA** | CISO + VP Eng | Red-Team agéntico. Tres agentes (Cartographer + Auth + Evidence) descubren, hipotetizan y **verifican** vulnerabilidades en el código que tu IA acaba de escribir. Hallazgos verificados con req/resp redactado y reproducible — cero falsos positivos sin evidencia. |
 | **III — Reversibilidad de un solo clic** | VP Eng | Snapshot · Sandbox · Aprobación · Rollback. Toda migración destructiva se snapshot-ea en un esquema paralelo de Postgres, se ejecuta en sandbox primero, y se aprueba en una tarjeta del dashboard. Un clic más y vuelve atrás. **Reversibilidad por defecto**. |
 
-> 📺 **Video demo:** ver [`docs/demo.mp4`](docs/demo.mp4) (o el enlace de
-> YouTube en la descripción del proyecto). Recorrido de 2:30 que muestra los
-> cinco beats WOW del producto en acción.
-
 ---
 
 ## Qué es novedoso
@@ -283,8 +279,7 @@ vibefence/
 ├── docs/
 │   ├── POSITIONING.md             ⭐ estrategia de producto y go-to-market
 │   ├── ARCHITECTURE.md            ⭐ diseño + modelo de amenazas + defensa por capas
-│   ├── deploy.md                  checklist de despliegue Vercel + Supabase
-│   └── demo.mp4                   ⭐ video de recorrido de 2:30
+│   └── deploy.md                  checklist de despliegue Vercel + Supabase
 ├── scripts/
 │   ├── smoke_test_pairing.py      pareo end-to-end contra el dashboard desplegado
 │   └── sync_schemas.py            genera frontend/types/api.ts desde los Pydantic models
