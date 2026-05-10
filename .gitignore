@@ -1,0 +1,59 @@
+# Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.npm/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.local.example
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Vibefence
+~/.vibefence/
+.vibefence-local/
+
+# Local-only demo orchestration (not part of the shipped product)
+.demo/
+
+# Internal scratch / dev notes
+.devdocs/
+
+# Local IDE / Claude Code workspace
+.claude/
+
+# Stray scratch directory from a previous scaffold
+b_auvBRpcmdSL/
+
+# Demo companion app (deliberately vulnerable, never shipped)
+demo-app/
+
+# Misc
+*.log
+*.bak
+.qa-codex-override-transcript.jsonl
+Screenshot*.png
