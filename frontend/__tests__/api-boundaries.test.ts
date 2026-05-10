@@ -180,4 +180,95 @@ describe("frontend API route auth boundaries", () => {
     expect(resp.status).toBe(404);
     await expect(resp.json()).resolves.toEqual({ error: "scan_not_found" });
   });
+
+  test("runner sweep route requires an authenticated dashboard user", async () => {
+    createClient.mockResolvedValue({
+      auth: { getUser: vi.fn(async () => ({ data: { user: null } })) },
+    });
+    createServiceClient.mockReturnValue({
+      rpc: vi.fn(() => {
+        throw new Error("sweep should not run");
+      }),
+    });
+
+    const { POST } = await import("@/app/api/runners/sweep/route");
+    const resp = await POST();
+
+    expect(resp.status).toBe(401);
+    await expect(resp.json()).resolves.toEqual({ error: "unauthorized" });
+  });
+
+  test("pairing claim reserves a code before issuing a runner token", async () => {
+    const codeRow = {
+      code: "ABC-123",
+      owner_id: "owner_1",
+      project_id: "project_1",
+    };
+    const calls: Array<Record<string, unknown>> = [];
+
+    createServiceClient.mockReturnValue({
+      from(table: string) {
+        if (table === "pairing_codes") {
+          const q: Record<string, unknown> = {
+            update(values: unknown) {
+              calls.push({ table, op: "update", values });
+              return q;
+            },
+            eq(field: string, value: unknown) {
+              calls.push({ table, op: "eq", field, value });
+              return q;
+            },
+            is(field: string, value: unknown) {
+              calls.push({ table, op: "is", field, value });
+              return q;
+            },
+            gt(field: string, value: unknown) {
+              calls.push({ table, op: "gt", field, value });
+              return q;
+            },
+            select: vi.fn(() => q),
+            single: vi.fn(async () => ({ data: codeRow })),
+          };
+          return q;
+        }
+        if (table === "projects") {
+          return { update: vi.fn(() => ({ eq: vi.fn(async () => ({})) })) };
+        }
+        if (table === "runners") {
+          return {
+            insert: vi.fn(() => ({
+              select: vi.fn(() => ({
+                single: vi.fn(async () => ({
+                  data: { id: "runner_1", paired_at: "2026-05-10T00:00:00.000Z" },
+                })),
+              })),
+            })),
+          };
+        }
+        if (table === "project_runners") {
+          return { insert: vi.fn(async () => ({})) };
+        }
+        throw new Error(`unexpected table ${table}`);
+      },
+    });
+
+    const { POST } = await import("@/app/api/pairing/claim/route");
+    const resp = await POST(
+      jsonRequest({
+        code: "ABC-123",
+        machine_name: "devbox",
+        os: "darwin",
+        version: "0.1.0",
+      }) as never,
+    );
+
+    expect(resp.status).toBe(200);
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ table: "pairing_codes", op: "update" }),
+        expect.objectContaining({ table: "pairing_codes", op: "is", field: "claimed_at", value: null }),
+        expect.objectContaining({ table: "pairing_codes", op: "gt", field: "expires_at" }),
+      ]),
+    );
+  });
 });

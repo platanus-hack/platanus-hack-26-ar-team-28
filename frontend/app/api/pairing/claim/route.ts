@@ -27,20 +27,18 @@ export async function POST(request: NextRequest) {
 
   const svc = createServiceClient();
 
-  // 1. Look up the code
+  // 1. Atomically reserve the code before issuing a runner token.
+  const now = new Date().toISOString();
   const { data: code, error: codeError } = await svc
     .from("pairing_codes")
-    .select("*")
+    .update({ claimed_at: now })
     .eq("code", body.code)
+    .is("claimed_at", null)
+    .gt("expires_at", now)
+    .select("*")
     .single();
   if (codeError || !code) {
     return NextResponse.json({ error: "invalid_code" }, { status: 404 });
-  }
-  if (code.claimed_at) {
-    return NextResponse.json({ error: "already_claimed" }, { status: 409 });
-  }
-  if (new Date(code.expires_at).getTime() < Date.now()) {
-    return NextResponse.json({ error: "code_expired" }, { status: 410 });
   }
 
   // 2. Auto-fill project metadata from discovery (PRD §10.2)
@@ -91,7 +89,7 @@ export async function POST(request: NextRequest) {
   // 5. Mark code claimed
   await svc
     .from("pairing_codes")
-    .update({ claimed_at: new Date().toISOString(), claimed_runner_id: runner.id })
+    .update({ claimed_runner_id: runner.id })
     .eq("code", code.code);
 
   // 6. Issue signed runner token
