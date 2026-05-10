@@ -330,9 +330,9 @@ Estrategia completa de producto: [`docs/POSITIONING.md`](docs/POSITIONING.md).
 
 ---
 
-## Track del hackathon
+## Track del Platanus Hack 26
 
-Construido para el track de **Latin America AI Security**. El paquete de
+Construido para el track de **AI Security**. El paquete de
 entrega cubre `frontend/`, `agent/`, `supabase/`, `scripts/` y `docs/`. La
 app web vulnerable que acompaña al proyecto (`demo-app/`) se excluye de
 manera intencional — contiene un IDOR real y un README con inyección, y
