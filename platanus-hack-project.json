@@ -1,5 +1,5 @@
 {
-  "project-name": "<FILL THIS>",
-  "project-oneliner-spanish": "<FILL THIS>",
-  "project-description-spanish": "<FILL THIS>"
+  "project-name": "Vibefence",
+  "project-oneliner-spanish": "Tu IA tiene root. Vibefence se lo quita.",
+  "project-description-spanish": "Vibefence es una capa de runtime governance para los agentes de IA en tu equipo de ingeniería: identidad, audit, seguridad y reversibilidad para Claude Code, Cursor, Codex y cualquier agente que ya esté tocando tu shell, tu base de datos y tus deploys. Una sola plataforma con tres pilares — Tool Audit Layer (procedencia sobre contenido: el README no autoriza shells), red-team agéntico (Cartographer, Auth Agent y Evidence Agent verificando vulnerabilidades reales sin falsos positivos) y snapshot/sandbox/aprobación (acciones destructivas pasan por preview reversible)."
 }
