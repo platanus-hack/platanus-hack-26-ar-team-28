@@ -238,13 +238,15 @@ def start() -> None:
                 auth_agent.TestUser(label="user_a", email="alice@vibecrm.dev", password="password123"),
                 auth_agent.TestUser(label="user_b", email="bob@vibecrm.dev", password="password123"),
             ]
+            intensity = payload.get("intensity") or "safe"
             console.print(
                 f"[cyan]corriendo scan {scan_id}[/cyan]\n"
                 f"  target_url:  {target_url}\n"
-                f"  target_repo: {target_repo}"
+                f"  target_repo: {target_repo}\n"
+                f"  intensity:   {intensity}"
             )
             try:
-                await run_scan(scan_id, target_url, target_repo, users)
+                await run_scan(scan_id, target_url, target_repo, users, intensity=intensity)
             except ScanFailed as e:
                 console.print(f"[red]scan falló:[/red] {e}")
             return

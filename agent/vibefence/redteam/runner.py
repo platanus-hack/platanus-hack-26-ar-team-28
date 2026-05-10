@@ -89,8 +89,17 @@ async def run_scan(
     target_url: str,
     target_repo: Path,
     test_users: list[auth_agent.TestUser],
+    intensity: str = "safe",
 ) -> dict[str, Any]:
-    """Run the full scan loop. Streams events & findings to the cloud."""
+    """Run the full scan loop. Streams events & findings to the cloud.
+
+    `intensity="safe"` (the default) runs only the IDOR pipeline that's
+    been validated end-to-end since the project shipped. `intensity="aggressive"`
+    additionally runs the optional probe agents (unauth, SQL injection, HTTP
+    method tampering) AFTER the IDOR pipeline finishes. The default code
+    path is unchanged — branching is a single `if` at the very end of this
+    function, so demo timing is preserved.
+    """
     cfg = config.load()
     cloud = cfg.cloud_url.rstrip("/")
     token = cfg.runner_token
@@ -183,10 +192,68 @@ async def run_scan(
                 {"finding_id": finding_id},
             )
 
+    # Advanced mode — runs ONLY when the user opted in via the modal's
+    # "Advanced red-team" checkbox (intensity="aggressive"). Default-mode
+    # scans (intensity="safe") skip this entirely, preserving demo timing.
+    if intensity == "aggressive":
+        from vibefence.redteam import (
+            method_tampering_agent,
+            sql_injection_agent,
+            unauth_agent,
+        )
+        for label, mod in (
+            ("unauth", unauth_agent),
+            ("sqli", sql_injection_agent),
+            ("method_tamper", method_tampering_agent),
+        ):
+            await emit(label, "start", f"running {label} probes")
+            try:
+                advanced_findings = await mod.run(
+                    target_url=target_url,
+                    graph=graph,
+                    test_users=test_users,
+                    on_event=lambda m, _label=label: emit(_label, "probe", m),
+                )
+            except Exception as e:
+                await emit(label, "error", f"{label} agent failed: {e}")
+                continue
+            await emit(
+                label, "summary",
+                f"{len(advanced_findings)} verified finding(s) from {label}",
+            )
+            for f in advanced_findings:
+                body = {
+                    "title": f.title,
+                    "severity": f.severity,
+                    "category": f.category,
+                    "confidence": f.confidence,
+                    "status": "verified",
+                    "affected_route": f.affected_route,
+                    "affected_file": f.affected_file,
+                    "impact": f.impact,
+                    "expected_behavior": f.expected_behavior,
+                    "observed_behavior": f.observed_behavior,
+                    "evidence_summary": f.evidence_summary,
+                    "remediation_summary": f.remediation_summary,
+                    "patch_available": f.patch_available,
+                    "regression_test_available": f.regression_test_available,
+                    "redacted_request": f.redacted_request,
+                    "redacted_response": f.redacted_response,
+                }
+                fid = await _post_finding(cloud, token, scan_id, body)
+                if fid:
+                    findings_count += 1
+                    await emit(
+                        label, "verified",
+                        f"VERIFIED: {f.title} ({f.severity})",
+                        {"finding_id": fid},
+                    )
+
     summary = {
         "findings": findings_count,
         "routes": len(graph.routes),
         "hypotheses": len(hypotheses),
+        "intensity": intensity,
     }
     await _post_complete(cloud, token, scan_id, summary)
     await emit("scan", "complete", f"scan finished — {findings_count} verified finding(s)")

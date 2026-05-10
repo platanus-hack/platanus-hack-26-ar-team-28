@@ -22,6 +22,7 @@ const DEFAULT_TARGET_URL = "http://localhost:4000";
 interface ScanTarget {
   target_url: string;
   target_repo: string;
+  advanced_mode?: boolean;
 }
 
 function loadStoredTarget(projectId: string): ScanTarget | null {
@@ -57,6 +58,9 @@ export function ScanLauncher({ projectId, hasRunner: initialHasRunner, initialTa
   const [pickerOpen, setPickerOpen] = useState(false);
   const [targetUrl, setTargetUrl] = useState<string>(initialTargetUrl ?? DEFAULT_TARGET_URL);
   const [targetRepo, setTargetRepo] = useState<string>("");
+  // Off by default: the demo flow runs the IDOR-only pipeline. Toggle on
+  // for the broader sweep (unauth, SQLi, HTTP method tampering).
+  const [advancedMode, setAdvancedMode] = useState<boolean>(false);
   // Tracks "has anyone ever paired" vs "paired but offline" vs "online".
   // Lets us show the right help text instead of telling the user to pair
   // when they already have.
@@ -141,6 +145,9 @@ export function ScanLauncher({ projectId, hasRunner: initialHasRunner, initialTa
     if (stored) {
       setTargetUrl(stored.target_url);
       setTargetRepo(stored.target_repo);
+      if (typeof stored.advanced_mode === "boolean") {
+        setAdvancedMode(stored.advanced_mode);
+      }
     }
   }, [projectId]);
 
@@ -160,13 +167,21 @@ export function ScanLauncher({ projectId, hasRunner: initialHasRunner, initialTa
       toast.error("Target repo path is required.");
       return;
     }
-    saveStoredTarget(projectId, { target_url: tu, target_repo: tr });
+    saveStoredTarget(projectId, {
+      target_url: tu,
+      target_repo: tr,
+      advanced_mode: advancedMode,
+    });
     setPickerOpen(false);
     startTransition(async () => {
       const r = await fetch(`/api/projects/${projectId}/scans/trigger`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ target_url: tu, target_repo: tr }),
+        body: JSON.stringify({
+          target_url: tu,
+          target_repo: tr,
+          intensity: advancedMode ? "aggressive" : "safe",
+        }),
       });
       if (!r.ok) {
         const err = (await r.json()) as { detail?: string; error?: string };
@@ -367,6 +382,23 @@ export function ScanLauncher({ projectId, hasRunner: initialHasRunner, initialTa
                     />
                     <span className="font-mono text-[10px] text-foreground/40">
                       Absolute path on the runner. Cartographer ripgreps `app/` here for routes.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 cursor-pointer pt-1 select-none">
+                    <input
+                      type="checkbox"
+                      checked={advancedMode}
+                      onChange={(e) => setAdvancedMode(e.target.checked)}
+                      className="mt-0.5 h-3.5 w-3.5 accent-primary cursor-pointer"
+                    />
+                    <span className="space-y-0.5">
+                      <span className="block font-mono uppercase text-[10px] text-foreground/70 tracking-widest">
+                        Advanced red-team
+                      </span>
+                      <span className="block font-mono text-[10px] text-foreground/40">
+                        Adds unauthenticated-endpoint, SQL-injection, and HTTP method-tampering probes after the IDOR pipeline. Slower (~60s vs ~30s).
+                      </span>
                     </span>
                   </label>
 

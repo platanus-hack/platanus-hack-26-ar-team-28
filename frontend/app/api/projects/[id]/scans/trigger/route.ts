@@ -9,6 +9,11 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 const Body = z.object({
   target_url: z.string().min(1).max(500),
   target_repo: z.string().min(1).max(1000),
+  // Default-mode flow stays "safe" (only the IDOR pipeline runs). Toggle
+  // to "aggressive" via the scan-launcher modal's "Advanced red-team"
+  // checkbox to additionally run unauth, SQL-injection, and HTTP-method
+  // tampering probes.
+  intensity: z.enum(["safe", "aggressive"]).optional().default("safe"),
 });
 
 export async function POST(
@@ -77,7 +82,7 @@ export async function POST(
       project_id,
       runner_id: runner.id,
       target_url: body.target_url,
-      intensity: "safe",
+      intensity: body.intensity,
       status: "queued",
     })
     .select("id")
@@ -96,6 +101,7 @@ export async function POST(
       scan_id: scan.id,
       target_url: body.target_url,
       target_repo: body.target_repo,
+      intensity: body.intensity,
     },
   });
   if (jobErr) {
